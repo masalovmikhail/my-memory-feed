@@ -1,91 +1,131 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Моя лента</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
-  margin: 0;
-  font-family: sans-serif;
-  background: #f2f2f7;
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, sans-serif;
+    background:#f2f2f7;
 }
 .container {
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-}
-textarea {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-button {
-  margin-top: 10px;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 10px;
-  background: black;
-  color: white;
-  cursor: pointer;
+    max-width:600px;
+    margin:auto;
+    padding:20px;
 }
 .card {
-  background: white;
-  padding: 15px;
-  border-radius: 15px;
-  margin-top: 15px;
+    background:white;
+    padding:15px;
+    border-radius:20px;
+    margin-bottom:20px;
+}
+textarea,input {
+    width:100%;
+    padding:10px;
+    border-radius:12px;
+    border:1px solid #ddd;
+    margin-bottom:10px;
+    font-size:16px;
+}
+button {
+    background:black;
+    color:white;
+    padding:10px 15px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+}
+img {
+    width:100%;
+    border-radius:12px;
+    margin-top:10px;
 }
 </style>
 </head>
+
 <body>
-
 <div class="container">
-  <h2>Моя лента</h2>
-  <textarea id="postInput" placeholder="Напиши что-нибудь..."></textarea>
-  <button onclick="addPost()">Опубликовать</button>
 
-  <div id="feed"></div>
+<h2>Моя лента</h2>
+
+<div class="card">
+<input id="title" placeholder="Заголовок" />
+<textarea id="content" placeholder="Что произошло? 😊"></textarea>
+<input type="file" id="images" multiple accept="image/*" />
+<button onclick="addPost()">Опубликовать</button>
+</div>
+
+<div id="posts"></div>
+
 </div>
 
 <script>
 const supabase = window.supabase.createClient(
-  "https://ivoxwblvtensfockqhty.supabase.co",
-  "sb_publishable_tow2A6kwro01XXzu4Kp9bw_M8pfrPSW"
+    "https://ivoxwblvtensfockqhty.supabase.co",
+    "sb_publishable_tow2A6kwro01XXzu4Kp9bw_M8pfrPSW"
 );
 
 async function loadPosts() {
-  const { data } = await supabase
-    .from("posts")
-    .select("*")
-    .order("created_at", { ascending: false });
+    const { data } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const feed = document.getElementById("feed");
-  feed.innerHTML = "";
+    const container = document.getElementById('posts');
+    container.innerHTML = '';
 
-  data.forEach(post => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerText = post.content;
-    feed.appendChild(div);
-  });
+    data.forEach(post => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+            <h3>${post.title || ''}</h3>
+            <p>${post.content || ''}</p>
+        `;
+
+        if (post.images) {
+            post.images.forEach(img => {
+                const image = document.createElement('img');
+                image.src = img;
+                div.appendChild(image);
+            });
+        }
+
+        container.appendChild(div);
+    });
 }
 
 async function addPost() {
-  const input = document.getElementById("postInput");
-  const text = input.value;
+    const title = document.getElementById('title').value;
+    const content = document.getElementById('content').value;
+    const files = document.getElementById('images').files;
 
-  if (!text) return;
+    let imageArray = [];
 
-  await supabase.from("posts").insert([
-    { content: text }
-  ]);
+    for (let file of files) {
+        const reader = new FileReader();
+        await new Promise(resolve => {
+            reader.onload = () => {
+                imageArray.push(reader.result);
+                resolve();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
-  input.value = "";
-  loadPosts();
+    await supabase.from('posts').insert([
+        { title, content, images: imageArray }
+    ]);
+
+    document.getElementById('title').value = '';
+    document.getElementById('content').value = '';
+    document.getElementById('images').value = '';
+
+    loadPosts();
 }
 
 loadPosts();
