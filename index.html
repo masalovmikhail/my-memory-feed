@@ -65,7 +65,7 @@ button {
 <div class="card">
 <textarea id="content" placeholder="Напиши воспоминание... 😊"></textarea>
 <input type="file" id="images" multiple accept="image/*" />
-<button onclick="addPost()">Опубликовать</button>
+<button id="publishBtn">Опубликовать</button>
 <div class="message" id="message"></div>
 </div>
 
@@ -162,6 +162,34 @@ async function addPost() {
 
 loadPosts();
 </script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const supabaseUrl = "https://ivoxwblvtensfockqhty.supabase.co";
+const supabaseKey = "ВСТАВЬ_СЮДА_ТВОЙ_ANON_PUBLIC_KEY";
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const publishBtn = document.getElementById("publishBtn");
+
+publishBtn.addEventListener("click", async () => {
+  const text = document.querySelector("textarea").value;
+
+  if (!text) {
+    alert("Введите текст");
+    return;
+  }
+
+  const { error } = await supabase.from("posts").insert([
+    { content: text }
+  ]);
+
+  if (error) {
+    alert("Ошибка: " + error.message);
+  } else {
+    alert("Опубликовано!");
+  }
+});
+</script>
 </body>
 </html>
