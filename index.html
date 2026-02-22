@@ -24,13 +24,13 @@ body {
     border-radius:20px;
     margin-bottom:20px;
 }
-textarea,input {
+textarea {
     width:100%;
-    padding:10px;
-    border-radius:12px;
+    padding:12px;
+    border-radius:15px;
     border:1px solid #ddd;
-    margin-bottom:10px;
     font-size:16px;
+    margin-bottom:10px;
 }
 button {
     background:black;
@@ -40,10 +40,19 @@ button {
     border-radius:12px;
     cursor:pointer;
 }
-img {
+.grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:10px;
+}
+.grid img {
     width:100%;
     border-radius:12px;
+}
+.message {
     margin-top:10px;
+    font-size:14px;
 }
 </style>
 </head>
@@ -54,10 +63,10 @@ img {
 <h2>Моя лента</h2>
 
 <div class="card">
-<input id="title" placeholder="Заголовок" />
-<textarea id="content" placeholder="Что произошло? 😊"></textarea>
+<textarea id="content" placeholder="Напиши воспоминание... 😊"></textarea>
 <input type="file" id="images" multiple accept="image/*" />
 <button onclick="addPost()">Опубликовать</button>
+<div class="message" id="message"></div>
 </div>
 
 <div id="posts"></div>
@@ -71,10 +80,15 @@ const supabase = window.supabase.createClient(
 );
 
 async function loadPosts() {
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false });
+
+    if (error) {
+        document.getElementById('message').innerText = "Ошибка загрузки: " + error.message;
+        return;
+    }
 
     const container = document.getElementById('posts');
     container.innerHTML = '';
@@ -82,17 +96,20 @@ async function loadPosts() {
     data.forEach(post => {
         const div = document.createElement('div');
         div.className = 'card';
-        div.innerHTML = `
-            <h3>${post.title || ''}</h3>
-            <p>${post.content || ''}</p>
-        `;
 
-        if (post.images) {
+        div.innerHTML = `<p>${post.content || ''}</p>`;
+
+        if (post.images && post.images.length > 0) {
+            const grid = document.createElement('div');
+            grid.className = 'grid';
+
             post.images.forEach(img => {
                 const image = document.createElement('img');
                 image.src = img;
-                div.appendChild(image);
+                grid.appendChild(image);
             });
+
+            div.appendChild(grid);
         }
 
         container.appendChild(div);
@@ -100,9 +117,19 @@ async function loadPosts() {
 }
 
 async function addPost() {
-    const title = document.getElementById('title').value;
-    const content = document.getElementById('content').value;
+    const content = document.getElementById('content').value.trim();
     const files = document.getElementById('images').files;
+    const message = document.getElementById('message');
+
+    if (!content && files.length === 0) {
+        message.innerText = "Нельзя опубликовать пустой пост";
+        return;
+    }
+
+    if (files.length > 10) {
+        message.innerText = "Можно загрузить максимум 10 фото";
+        return;
+    }
 
     let imageArray = [];
 
@@ -117,13 +144,18 @@ async function addPost() {
         });
     }
 
-    await supabase.from('posts').insert([
-        { title, content, images: imageArray }
+    const { error } = await supabase.from('posts').insert([
+        { content, images: imageArray }
     ]);
 
-    document.getElementById('title').value = '';
+    if (error) {
+        message.innerText = "Ошибка сохранения: " + error.message;
+        return;
+    }
+
     document.getElementById('content').value = '';
     document.getElementById('images').value = '';
+    message.innerText = "Опубликовано ✅";
 
     loadPosts();
 }
