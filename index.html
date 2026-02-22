@@ -75,13 +75,13 @@ button {
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
+const client = window.supabase.createClient(
     "https://ivoxwblvtensfockqhty.supabase.co",
     "sb_publishable_tow2A6kwro01XXzu4Kp9bw_M8pfrPSW"
 );
 
 async function loadPosts() {
-    const { data, error } = await supabase
+    const { data, error } = await client
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false });
@@ -145,7 +145,7 @@ async function addPost() {
         });
     }
 
-    const { error } = await supabase.from('posts').insert([
+    const { error } = await client.from('posts').insert([
         { content, images: imageArray }
     ]);
 
